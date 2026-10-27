@@ -294,10 +294,13 @@ body{margin:0}
 
 <footer style="max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 32px;color:var(--muted);font-size:12.5px">
   Vrednosti hraniva i preporuke su orijentacione. Za konkretnu smešu važe deklaracija premiksa, analiza zrna i savet stručnjaka.
+  Sajt broji posete bez kolačića i bez ličnih podataka (GoatCounter).
 </footer>
 <script>
 // Pro features (prices, amino acids, saved recipes). The public site build sets this to false.
 const PRO = false;
+// Visit counter events (GoatCounter on the public site only; no-op elsewhere)
+const track = name => { try { window.goatcounter?.count?.({ path: name, title: name, event: true }); } catch (e) {} };
 const lock = (naslov, opis) => `<div class="lock"><div class="lt"><span class="pill">PRO</span>${naslov}</div><p>${opis} Dostupno u Pro verziji, uskoro.</p></div>`;
 // Energy column per species group: svinje, živina, preživari (goveda i ovce)
 const VRSTE = {
@@ -604,6 +607,7 @@ document.addEventListener("input", e => {
 document.addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t) return;
   if (t.dataset.vrsta) {
+    track("vrsta-" + t.dataset.vrsta);
     if (t.dataset.vrsta === S.vrsta) return;
     S.vrsta = t.dataset.vrsta; S.kat = V().kat[0].id; postaviKategoriju(); renderPolja(); rerender();
   }
@@ -637,9 +641,11 @@ document.addEventListener("click", e => {
     const [x] = LISTA.splice(i, 1); store(KEY_LISTA, LISTA); renderLista(); flash("toast-save", `Obrisana receptura „${x.ime}“.`);
   }
   else if (t.id === "najpovoljnija") {
+    track("klik-najpovoljnija-smesa");
     $("toast-naj").textContent = (PRO ? "Najpovoljnija smeša je u izradi." : "Najpovoljnija smeša je deo Pro verzije, koja stiže uskoro. Kalkulator će sam izabrati hraniva i količine tako da smeša zadovolji preporuke uz najnižu cenu.");
   }
   else if (t.id === "kopiraj") {
+    track("klik-kopiraj-recepturu");
     const txt = kaoTekst();
     navigator.clipboard?.writeText(txt).then(() => flash("toast-copy", "Kopirano."), () => flash("toast-copy", "Kopiranje nije uspelo u ovom prikazu."))
       ?? flash("toast-copy", "Kopiranje nije podržano u ovom prikazu.");
@@ -655,5 +661,6 @@ renderRezultat();
 if (PRO) renderLista();
 </script>
 
+<script data-goatcounter="https://smesa.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
