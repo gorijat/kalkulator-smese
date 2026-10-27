@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="sr-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Besplatan kalkulator smeše za svinje, živinu, goveda i ovce: koliko kg žitarica, sačme i premiksa po šarži, sa proverom energije, lizina i cenom smeše.">
+<title>Receptura stočne hrane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,500..800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: mill batch ticket. Inputs on the left, the printed-looking receptura on the right; stacks on phones. */
+:root {
+  --bg: #eef1ec;
+  --panel: #ffffff;
+  --ink: #1d2a26;
+  --muted: #5d6b65;
+  --line: #d3dbd5;
+  --accent: #b5841c;      /* barley gold */
+  --accent-soft: #f3e6c4;
+  --grain: #d9a93a;
+  --prot: #3f7d5c;
+  --mix: #7a8a83;
+  --bad: #b23b2e;
+  --bad-soft: #f7dfdb;
+  --ok: #2f7a4f;
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-num: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a18; --panel: #1d2523; --ink: #e5ebe7; --muted: #9aa8a1; --line: #33403b;
+    --accent: #e0b04a; --accent-soft: #3a3120; --grain: #e0b04a; --prot: #6fbf92; --mix: #8c9c95;
+    --bad: #ef7b6c; --bad-soft: #3d2420; --ok: #6fbf92; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a18; --panel: #1d2523; --ink: #e5ebe7; --muted: #9aa8a1; --line: #33403b;
+  --accent: #e0b04a; --accent-soft: #3a3120; --grain: #e0b04a; --prot: #6fbf92; --mix: #8c9c95;
+  --bad: #ef7b6c; --bad-soft: #3d2420; --ok: #6fbf92; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; gap: 20px; }
+header h1 { font-family: var(--f-display); font-stretch: 85%; font-weight: 800; font-size: clamp(26px, 4vw, 36px); line-height: 1.1; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 65ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 880px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 16px; min-width: 0; }
+.label { font-family: var(--f-display); font-stretch: 110%; font-weight: 600; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+h2 { font-family: var(--f-display); font-stretch: 90%; font-weight: 700; font-size: 18px; margin: 0; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+label.l { font-size: 13px; color: var(--muted); }
+input, select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%; min-width: 0; }
+input[type=number] { font-family: var(--f-num); font-size: 14px; font-variant-numeric: tabular-nums; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.unit { position: relative; }
+.unit input { padding-right: 34px; }
+.unit span { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.group { display: grid; gap: 8px; }
+.group-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.ing { display: grid; grid-template-columns: minmax(0, 1fr) 84px 76px 32px; gap: 6px; align-items: center; }
+.ing.head { font-size: 12px; color: var(--muted); }
+.ing.head span:nth-child(2), .ing.head span:nth-child(3) { text-align: right; padding-right: 4px; }
+button { font: inherit; cursor: pointer; border-radius: 6px; }
+.del { border: 1px solid transparent; background: transparent; color: var(--muted); width: 32px; height: 34px; font-size: 18px; line-height: 1; }
+.del:hover { color: var(--bad); border-color: var(--line); }
+.add { justify-self: start; border: 1px dashed var(--line); background: transparent; color: var(--ink); padding: 6px 12px; font-size: 13.5px; }
+.add:hover { border-color: var(--accent); }
+.reset { border: 1px solid var(--line); background: transparent; color: var(--muted); padding: 6px 12px; font-size: 13px; justify-self: start; }
+
+/* ticket */
+.ticket { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+@media (max-width: 880px) { .ticket { position: static; } }
+.ticket-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 2px solid var(--ink); padding-bottom: 10px; }
+.ticket-head .big { font-family: var(--f-num); font-weight: 600; font-size: 28px; font-variant-numeric: tabular-nums; }
+.status { font-size: 13.5px; padding: 8px 12px; border-radius: 6px; }
+.status.ok { background: var(--accent-soft); color: var(--ink); }
+.status.bad { background: var(--bad-soft); color: var(--bad); }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-weight: 600; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); padding: 6px 6px; white-space: nowrap; }
+td { padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.n, th.n { text-align: right; font-family: var(--f-num); font-size: 13.5px; white-space: nowrap; }
+td.name { display: flex; align-items: center; gap: 8px; }
+tfoot td { border-bottom: none; border-top: 2px solid var(--ink); font-weight: 600; }
+.bar { display: flex; height: 14px; border-radius: 4px; overflow: hidden; background: var(--line); }
+.bar span { display: block; height: 100%; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Pearson square */
+.pearson { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-rows: auto auto auto; gap: 6px 10px; align-items: center; max-width: 420px; }
+.pc { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; display: grid; gap: 0; }
+.pc b { font-family: var(--f-num); font-weight: 600; font-variant-numeric: tabular-nums; font-size: 15px; }
+.pc small { color: var(--muted); font-size: 12px; }
+.pc.center { border-color: var(--accent); background: var(--accent-soft); text-align: center; }
+.pc.right { text-align: right; }
+.pearson .x { color: var(--muted); text-align: center; font-family: var(--f-num); }
+details summary { cursor: pointer; font-size: 13.5px; color: var(--muted); }
+details[open] summary { margin-bottom: 10px; }
+@media (max-width: 480px) {
+  .ing { grid-template-columns: minmax(0, 1fr) 70px 62px 30px; }
+  .ticket-head .big { font-size: 22px; }
+}
+.species { display: flex; gap: 6px; flex-wrap: wrap; }
+.species button { border: 1px solid var(--line); background: transparent; color: var(--ink); padding: 7px 14px; font-family: var(--f-display); font-stretch: 95%; font-weight: 600; font-size: 14px; }
+.species button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.ing { grid-template-columns: minmax(0, 1fr) 70px 70px 64px 64px 30px; }
+.ing.head span:not(:first-child) { text-align: right; padding-right: 4px; }
+.ing.nolys { grid-template-columns: minmax(0, 1fr) 70px 70px 64px 30px; }
+@media (max-width: 480px) {
+  .ing { grid-template-columns: minmax(0, 1fr) 56px 56px 52px 52px 28px; }
+  .ing.nolys { grid-template-columns: minmax(0, 1fr) 60px 60px 56px 28px; }
+  .ing input[type=number] { padding: 6px 5px; font-size: 13px; }
+}
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.chk { border: 1px solid var(--line); border-left: 4px solid var(--mix); border-radius: 6px; padding: 8px 10px; display: grid; gap: 2px; min-width: 0; }
+.chk.good { border-left-color: var(--ok); }
+.chk.warn { border-left-color: var(--accent); }
+.chk.low { border-left-color: var(--bad); }
+.chk b { font-family: var(--f-num); font-weight: 600; font-size: 16px; font-variant-numeric: tabular-nums; }
+.chk small { color: var(--muted); font-size: 12px; }
+.chk p { margin: 2px 0 0; font-size: 12.5px; }
+.saved { display: grid; gap: 6px; }
+.saved-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-block: 6px; }
+.saved-row .nm { flex: 1 1 160px; min-width: 0; }
+.saved-row .nm small { display: block; color: var(--muted); font-size: 12px; }
+.btn { border: 1px solid var(--line); background: transparent; color: var(--ink); padding: 6px 12px; font-size: 13.5px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row input { flex: 1 1 180px; width: auto; }
+.ing { grid-template-columns: minmax(0, 1fr) 64px 60px 64px 58px 30px; }
+@media (max-width: 520px) {
+  .ing { grid-template-columns: repeat(4, minmax(0, 1fr)) 30px; gap: 4px 6px; }
+  .ing > :first-child { grid-column: 1 / -1; }
+  .ing:not(.head) { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .ing.head > :first-child { display: none; }
+  .ing.head span { text-align: left !important; }
+}
+.cost { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+.cost b { font-family: var(--f-num); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; }
+.cost small { color: var(--muted); font-size: 12.5px; }
+.aktab td { padding: 4px; }
+.aktab input { width: 64px; padding: 5px 6px; text-align: right; }
+.aktab td.nm { font-size: 13.5px; min-width: 110px; }
+.sup { font-size: 13.5px; display: grid; gap: 4px; }
+.toast { font-size: 13px; color: var(--ok); min-height: 1.2em; margin: 0; }
+
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Receptura stočne hrane</h1>
+    <p>Izaberite životinju i kategoriju, unesite hraniva koja imate i koliko premiksa preporučuje proizvođač. Kalkulator izbalansira protein, pa proveri energiju i lizin i kaže koliko kilograma čega ide u šaržu.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="h-ulaz">
+      <h2 id="h-ulaz">Ulazni podaci</h2>
+      <div class="species" id="vrsta" role="group" aria-label="Životinja"></div>
+      <div class="fields">
+        <div class="field wide">
+          <label class="l" for="kat">Kategorija</label>
+          <select id="kat"></select>
+        </div>
+        <div class="field">
+          <label class="l" for="cilj">Ciljni sirovi protein</label>
+          <div class="unit"><input id="cilj" type="number" step="0.1" min="0" max="60"><span>%</span></div>
+        </div>
+        <div class="field">
+          <label class="l" for="sarza">Veličina šarže</label>
+          <div class="unit"><input id="sarza" type="number" step="10" min="1"><span>kg</span></div>
+        </div>
+        <div class="field">
+          <label class="l" for="premix">Premiks u smeši</label>
+          <div class="unit"><input id="premix" type="number" step="0.5" min="0" max="50"><span>%</span></div>
+        </div>
+        <div class="field">
+          <label class="l" for="premixcp">Protein u premiksu</label>
+          <div class="unit"><input id="premixcp" type="number" step="0.5" min="0" max="80"><span>%</span></div>
+        </div>
+        <div class="field">
+          <label class="l" for="premixcena">Cena premiksa</label>
+          <div class="unit"><input id="premixcena" type="number" step="5" min="0" style="padding-right:62px"><span>din/kg</span></div>
+        </div>
+      </div>
+      <div class="fields" id="f-premixak"></div>
+      <p class="hint" id="hint-premix"></p>
+
+      <div class="group" id="g-z"></div>
+      <div class="group" id="g-p"></div>
+
+      <details id="ak-box">
+        <summary>Aminokiseline u hranivima (% u hranivu)</summary>
+        <div class="tablewrap"><table class="aktab"><thead><tr><th>Hranivo</th><th class="n">Lizin</th><th class="n">Met+Cis</th><th class="n">Treonin</th><th class="n">Triptofan</th></tr></thead><tbody id="ak-tb"></tbody><tfoot id="ak-tf"></tfoot></table></div>
+      </details>
+
+      <p class="hint"><b>Udeo</b> je odnos unutar grupe: kukuruz 80 i ječam 20 znači da su žitarice 80:20. Udeo 0 znači da se hranivo ne koristi. <b>ME</b> je metabolička energija u MJ/kg. <b>Cene</b> su samo primer; upišite svoje cene u dinarima po kilogramu. Vrednosti su tabelarne i orijentacione; analiza vašeg zrna i deklaracija sačme su tačnije.</p>
+      <button class="reset" id="reset" type="button">Vrati podrazumevane vrednosti</button>
+    </section>
+
+    <div class="grid-col" style="display:grid;gap:20px;min-width:0">
+      <section class="panel ticket" aria-labelledby="h-rec" aria-live="polite">
+        <div class="ticket-head">
+          <div>
+            <div class="label" id="rec-label">Receptura</div>
+            <h2 id="h-rec"></h2>
+          </div>
+          <div class="big" id="ukupno"></div>
+        </div>
+        <div id="status" class="status"></div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Hranivo</th><th class="n">%</th><th class="n">kg</th><th class="n">Protein, kg</th><th class="n">Cena, din</th></tr></thead>
+            <tbody id="tb"></tbody>
+            <tfoot id="tf"></tfoot>
+          </table>
+        </div>
+        <div class="bar" id="bar" aria-hidden="true"></div>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--grain)"></i>Žitarice</span>
+          <span><i class="dot" style="background:var(--prot)"></i>Proteinski deo</span>
+          <span><i class="dot" style="background:var(--mix)"></i>Premiks i dodaci</span>
+        </div>
+        <div class="cost" id="cost"></div>
+        <div class="checks" id="checks"></div>
+        <div class="sup" id="dodaci"></div>
+        <div class="row">
+          <button class="btn" id="kopiraj" type="button">Kopiraj recepturu kao tekst</button>
+          <p class="toast" id="toast-copy" role="status"></p>
+        </div>
+        <details>
+          <summary>Kako je izračunato (Pirsonov kvadrat)</summary>
+          <div id="pearson"></div>
+        </details>
+      </section>
+
+      <section class="panel" aria-labelledby="h-sac">
+        <h2 id="h-sac">Sačuvane recepture</h2>
+        <div class="row">
+          <label class="l" for="ime-rec" style="flex-basis:100%">Naziv recepture</label>
+          <input id="ime-rec" placeholder="npr. Tov jesen, kukuruz iz silosa 2">
+          <button class="btn primary" id="sacuvaj" type="button">Sačuvaj</button>
+        </div>
+        <p class="toast" id="toast-save" role="status"></p>
+        <div class="saved" id="lista"></div>
+        <p class="hint">Recepture se čuvaju u ovom pregledaču, na ovom uređaju. Na drugom telefonu ili računaru ih neće biti.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+
+<footer style="max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 32px;color:var(--muted);font-size:12.5px">
+  Vrednosti hraniva i preporuke su orijentacione. Za konkretnu smešu važe deklaracija premiksa, analiza zrna i savet stručnjaka.
+</footer>
+<script>
+// Energy column per species group: svinje, živina, preživari (goveda i ovce)
+const VRSTE = {
+  svinje: { naziv: "Svinje", e: "s", lizin: true, ak: { mc: 0.60, thr: 0.65, trp: 0.18 }, premixHint: "Premiks i protein u premiksu prepišite sa deklaracije. Običan vitaminsko‑mineralni premiks nema protein, a superkoncentrati obično imaju 30–40%. Mnogi premiksi za svinje sadrže i lizin.",
+    kat: [
+      { id: "prestarter", naziv: "Prasad 5–15 kg (prestarter/starter)", cp: 20, me: 14.2, lys: 1.35, premix: 4 },
+      { id: "prasad",     naziv: "Prasad 15–25 kg",   cp: 18, me: 13.8, lys: 1.20, premix: 4 },
+      { id: "porast",     naziv: "Porast 25–60 kg",   cp: 16, me: 13.4, lys: 1.00, premix: 3 },
+      { id: "tov",        naziv: "Tov 60–110 kg",     cp: 14, me: 13.0, lys: 0.80, premix: 2.5 },
+      { id: "suprasne",   naziv: "Krmače suprasne",   cp: 13, me: 12.5, lys: 0.60, premix: 3, ak: { mc: 0.65, thr: 0.75, trp: 0.19 } },
+      { id: "dojare",     naziv: "Krmače dojare",     cp: 17, me: 13.4, lys: 0.95, premix: 3, ak: { mc: 0.55, thr: 0.65, trp: 0.19 } },
+    ] },
+  zivina: { naziv: "Živina", e: "z", lizin: true, ak: { mc: 0.75, thr: 0.67, trp: 0.16 }, premixHint: "Premiks za brojlere je obično 1–4%. Za nosilje se često koristi premiks od 8–10% koji već sadrži krečnjak (kalcijum); proverite deklaraciju.",
+    kat: [
+      { id: "br-starter", naziv: "Brojleri starter (1–10 dana)",  cp: 22,   me: 12.5, lys: 1.30, premix: 4 },
+      { id: "br-grover",  naziv: "Brojleri grover (11–24 dana)",  cp: 20.5, me: 12.9, lys: 1.15, premix: 4 },
+      { id: "br-finiser", naziv: "Brojleri finišer (25+ dana)",   cp: 19,   me: 13.2, lys: 1.03, premix: 3 },
+      { id: "nosilje",    naziv: "Kokoške nosilje",               cp: 16.5, me: 11.5, lys: 0.80, premix: 8, ak: { mc: 0.88, thr: 0.70, trp: 0.21 } },
+    ] },
+  goveda: { naziv: "Goveda", e: "r", lizin: false, premixHint: "Ovo je koncentrat koji ide uz kabastu hranu (seno, silaža). Protein koncentrata zavisi od kabaste hrane: uz kukuruznu silažu treba više, uz lucerku manje.",
+    kat: [
+      { id: "telad",  naziv: "Telad 3–6 meseci (koncentrat)",   cp: 18, me: 12.5, premix: 3 },
+      { id: "junad",  naziv: "Junad u tovu (koncentrat)",       cp: 14, me: 12.0, premix: 3 },
+      { id: "muzare", naziv: "Krave muzare (koncentrat)",       cp: 18, me: 12.0, premix: 3 },
+    ] },
+  ovce: { naziv: "Ovce i koze", e: "r", lizin: false, premixHint: "Ovo je koncentrat koji ide uz kabastu hranu. Za ovce koristite premiks bez dodatog bakra.",
+    kat: [
+      { id: "jagnjad",  naziv: "Jagnjad u tovu (koncentrat)",          cp: 17, me: 12.0, premix: 3 },
+      { id: "laktacija",naziv: "Ovce i koze u laktaciji (koncentrat)", cp: 15, me: 11.5, premix: 3 },
+    ] },
+};
+// me: { s: svinje, z: živina, r: preživari } in MJ/kg; amino acids (ukupne) in % of feed
+const HRANIVA = () => [
+  { g: "z", ime: "Kukuruz",            cp: 8.5, lys: 0.25, mc: 0.36, thr: 0.29, trp: 0.06, me: { s: 14.0, z: 13.8, r: 13.3 }, cena: 25, udeo: 80 },
+  { g: "z", ime: "Ječam",              cp: 11,  lys: 0.38, mc: 0.40, thr: 0.36, trp: 0.13, me: { s: 12.6, z: 11.3, r: 12.8 }, cena: 24, udeo: 20 },
+  { g: "z", ime: "Pšenica",            cp: 12,  lys: 0.33, mc: 0.47, thr: 0.35, trp: 0.15, me: { s: 13.8, z: 12.8, r: 13.4 }, cena: 27, udeo: 0 },
+  { g: "z", ime: "Tritikale",          cp: 11,  lys: 0.38, mc: 0.45, thr: 0.35, trp: 0.13, me: { s: 13.5, z: 12.6, r: 13.0 }, cena: 24, udeo: 0 },
+  { g: "p", ime: "Sojina sačma",       cp: 44,  lys: 2.80, mc: 1.30, thr: 1.75, trp: 0.60, me: { s: 13.0, z: 9.8,  r: 13.6 }, cena: 70, udeo: 70 },
+  { g: "p", ime: "Suncokretova sačma", cp: 33,  lys: 1.15, mc: 1.35, thr: 1.20, trp: 0.40, me: { s: 9.5,  z: 7.0,  r: 10.4 }, cena: 35, udeo: 30 },
+  { g: "p", ime: "Sojin griz",         cp: 36,  lys: 2.20, mc: 1.05, thr: 1.40, trp: 0.48, me: { s: 16.0, z: 14.0, r: 15.0 }, cena: 65, udeo: 0 },
+];
+// Essential amino acids tracked; dodatak = synthetic source and its purity
+const AK = [
+  { k: "lys", naziv: "Lizin",            dodatak: "L‑lizin HCl",  cist: 0.78 },
+  { k: "mc",  naziv: "Metionin+cistin",  dodatak: "DL‑metionin",  cist: 0.99 },
+  { k: "thr", naziv: "Treonin",          dodatak: "L‑treonin",    cist: 0.98 },
+  { k: "trp", naziv: "Triptofan",        dodatak: "L‑triptofan",  cist: 0.98 },
+];
+// Fill amino acids missing from older saved data: library value by name, else estimate from protein
+function dopuni(st) {
+  const lib = HRANIVA();
+  st.hraniva.forEach(h => {
+    const l = lib.find(x => x.ime === h.ime);
+    const est = { lys: 0.045, mc: 0.035, thr: 0.038, trp: 0.012 };
+    for (const a of AK) if (h[a.k] === undefined) h[a.k] = l ? l[a.k] : +(num(h.cp) * est[a.k]).toFixed(2);
+  });
+  st.hraniva.forEach(h => { if (h.cena === undefined) { const l = lib.find(x => x.ime === h.ime); h.cena = l ? l.cena : 0; } });
+  if (st.premixcena === undefined) st.premixcena = 180;
+  if (!st.ceneak) st.ceneak = CENE_AK();
+  if (!st.premixak) st.premixak = { lys: num(st.premixlys), mc: 0, thr: 0, trp: 0 };
+  return st;
+}
+const DEFAULT = () => ({ vrsta: "svinje", kat: "porast", cilj: 16, sarza: 100, premix: 3, premixcp: 0, premixak: { lys: 0, mc: 0, thr: 0, trp: 0 }, premixcena: 180, ceneak: CENE_AK(), hraniva: HRANIVA() });
+// Example prices in din/kg; the user overwrites them with their own
+function CENE_AK() { return { lys: 300, mc: 550, thr: 350, trp: 2500 }; }
+const KEY = "receptura-v2", KEY_LISTA = "receptura-lista-v1";
+const load = (k, fb) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fb; } catch (e) { return fb; } };
+const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+let S = load(KEY, null) || DEFAULT();
+if (!VRSTE[S.vrsta] || !Array.isArray(S.hraniva)) S = DEFAULT();
+let LISTA = load(KEY_LISTA, []);
+if (!Array.isArray(LISTA)) LISTA = [];
+
+const $ = id => document.getElementById(id);
+const num = v => { const x = parseFloat(String(v ?? "").replace(",", ".")); return isFinite(x) ? x : 0; };
+const f = (x, d = 2) => x.toLocaleString("sr-Latn-RS", { minimumFractionDigits: d, maximumFractionDigits: d });
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+dopuni(S);
+const V = () => VRSTE[S.vrsta];
+const K = () => V().kat.find(k => k.id === S.kat) || V().kat[0];
+const meOf = h => num(h.me?.[V().e]);
+
+// --- calculation -------------------------------------------------------
+function izracunaj(s) {
+  const B = Math.max(num(s.sarza), 0);
+  const p = num(s.premix) / 100, cpm = num(s.premixcp), T = num(s.cilj);
+  const grupa = g => {
+    const items = s.hraniva.filter(h => h.g === g && num(h.udeo) > 0);
+    const sum = items.reduce((a, h) => a + num(h.udeo), 0);
+    const cp = sum ? items.reduce((a, h) => a + num(h.udeo) * num(h.cp), 0) / sum : 0;
+    return { items, sum, cp };
+  };
+  const Z = grupa("z"), P = grupa("p");
+  const R = 1 - p;
+  const Tn = R > 0 ? (T - p * cpm) / R : NaN; // target CP of the non‑premix part
+  let greska = null;
+  if (!Z.items.length) greska = "Dodajte bar jednu žitaricu sa udelom većim od 0.";
+  else if (!P.items.length) greska = "Dodajte bar jedno proteinsko hranivo sa udelom većim od 0.";
+  else if (R <= 0) greska = "Premiks ne može biti 100% ili više.";
+  else if (P.cp <= Z.cp) greska = "Proteinski deo mora imati više proteina od žitarica.";
+  else if (Tn < Z.cp) greska = `Cilj od ${f(T,1)}% je niži od onoga što daju same žitarice (${f(Z.cp*R + p*cpm,1)}% sa premiksom). Smanjite protein u žitaricama ili povećajte cilj.`;
+  else if (Tn > P.cp) greska = `Cilj od ${f(T,1)}% je viši nego što proteinski deo može da da (najviše ${f(P.cp*R + p*cpm,1)}%). Dodajte hranivo sa više proteina.`;
+  let delP = 0, delZ = 0;
+  const redovi = [];
+  if (!greska) {
+    delP = R * (Tn - Z.cp) / (P.cp - Z.cp); delZ = R - delP;
+    Z.items.forEach(h => redovi.push({ g: "z", h, ime: h.ime, cp: num(h.cp), udio: delZ * num(h.udeo) / Z.sum }));
+    P.items.forEach(h => redovi.push({ g: "p", h, ime: h.ime, cp: num(h.cp), udio: delP * num(h.udeo) / P.sum }));
+    if (p > 0) redovi.push({ g: "m", ime: "Premiks", cp: cpm, udio: p });
+  }
+  const me = redovi.reduce((a, x) => a + (x.h ? x.udio * meOf(x.h) : 0), 0);
+  const ak = {};
+  for (const a of AK) ak[a.k] = redovi.reduce((acc, x) => acc + x.udio * (x.h ? num(x.h[a.k]) : num(s.premixak?.[a.k])), 0);
+  return { B, p, cpm, T, Tn, Z, P, delZ, delP, greska, redovi, me, ak, lys: ak.lys };
+}
+
+// --- rendering inputs --------------------------------------------------
+function renderVrsta() {
+  $("vrsta").innerHTML = Object.entries(VRSTE).map(([id, v]) =>
+    `<button type="button" data-vrsta="${id}" aria-pressed="${id === S.vrsta}">${v.naziv}</button>`).join("");
+}
+function renderGrupe() {
+  const cls = "ing";
+  for (const g of ["z", "p"]) {
+    const naslov = g === "z" ? "Žitarice (energetski deo)" : "Proteinski deo";
+    const boja = g === "z" ? "var(--grain)" : "var(--prot)";
+    let html = `<div class="group-head"><i class="dot" style="background:${boja}"></i><span class="label">${naslov}</span></div>
+      <div class="${cls} head"><span>Hranivo</span><span>Protein %</span><span>ME</span><span>din/kg</span><span>Udeo</span><span></span></div>`;
+    S.hraniva.forEach((h, i) => {
+      if (h.g !== g) return;
+      const n = esc(h.ime);
+      html += `<div class="${cls}">
+        <input id="ime-${i}" data-i="${i}" data-k="ime" value="${n}" aria-label="Naziv hraniva">
+        <input id="cp-${i}" data-i="${i}" data-k="cp" type="number" step="0.1" min="0" max="90" value="${h.cp}" aria-label="Protein u ${n}, %">
+        <input id="me-${i}" data-i="${i}" data-k="me" type="number" step="0.1" min="0" max="40" value="${meOf(h)}" aria-label="Energija ${n}, MJ/kg">
+        <input id="ce-${i}" data-i="${i}" data-k="cena" type="number" step="1" min="0" value="${h.cena ?? 0}" aria-label="Cena ${n}, din/kg">
+        <input id="ud-${i}" data-i="${i}" data-k="udeo" type="number" step="5" min="0" value="${h.udeo}" aria-label="Udeo ${n} u grupi">
+        <button class="del" type="button" data-del="${i}" aria-label="Ukloni ${n}" title="Ukloni">×</button>
+      </div>`;
+    });
+    html += `<button class="add" type="button" data-add="${g}">+ Dodaj ${g === "z" ? "žitaricu" : "proteinsko hranivo"}</button>`;
+    $("g-" + g).innerHTML = html;
+  }
+}
+function renderAkTabela() {
+  $("ak-tb").innerHTML = S.hraniva.map((h, i) => `<tr><td class="nm">${esc(h.ime)}</td>${AK.map(a =>
+    `<td class="n"><input id="ak-${a.k}-${i}" data-i="${i}" data-k="${a.k}" type="number" step="0.01" min="0" max="20" value="${h[a.k]}" aria-label="${a.naziv} u ${esc(h.ime)}, %"></td>`).join("")}</tr>`).join("");
+  $("ak-tf").innerHTML = `<tr><td class="nm">Cena dodatka, din/kg<br><small class="hint">${AK.map(a => a.dodatak).join(", ")}</small></td>${AK.map(a =>
+    `<td class="n"><input id="cak-${a.k}" data-cak="${a.k}" type="number" step="10" min="0" value="${S.ceneak[a.k] ?? 0}" aria-label="Cena ${a.dodatak}, din/kg"></td>`).join("")}</tr>`;
+}
+function renderPolja() {
+  renderVrsta();
+  $("kat").innerHTML = V().kat.map(k => `<option value="${k.id}">${k.naziv} · ${k.cp}% SP</option>`).join("");
+  $("kat").value = K().id;
+  for (const id of ["cilj", "sarza", "premix", "premixcp", "premixcena"]) $(id).value = S[id] ?? 0;
+  $("f-premixak").hidden = $("ak-box").hidden = !V().lizin;
+  $("f-premixak").innerHTML = AK.map(a => `<div class="field"><label class="l" for="pak-${a.k}">${a.naziv} u premiksu</label>
+    <div class="unit"><input id="pak-${a.k}" data-pak="${a.k}" type="number" step="0.1" min="0" max="40" value="${S.premixak[a.k] ?? 0}"><span>%</span></div></div>`).join("");
+  renderAkTabela();
+  $("hint-premix").textContent = V().premixHint;
+  renderGrupe();
+}
+
+// --- rendering result --------------------------------------------------
+const boja = g => g === "z" ? "var(--grain)" : g === "p" ? "var(--prot)" : "var(--mix)";
+// Cost of the batch: ingredients + premix, plus synthetic amino acids added on top
+function cena(r) {
+  const osnovna = r.redovi.reduce((a, x) => a + x.udio * r.B * (x.h ? num(x.h.cena) : num(S.premixcena)), 0);
+  const d = dodaci(r);
+  const dod = d.reduce((a, x) => a + x.kg * num(S.ceneak?.[x.k]), 0);
+  const kg = r.B + d.reduce((a, x) => a + x.kg, 0);
+  return { osnovna, dodaci: dod, ukupno: osnovna + dod, poKg: kg ? (osnovna + dod) / kg : 0 };
+}
+// Synthetic amino acids needed to reach the target, kg per batch
+function preporukaAK(k) {
+  if (!V().lizin || !k.lys) return null;
+  const odnos = k.ak || V().ak;
+  return { lys: k.lys, mc: k.lys * odnos.mc, thr: k.lys * odnos.thr, trp: k.lys * odnos.trp };
+}
+function dodaci(r) {
+  const cilj = preporukaAK(K());
+  if (!cilj || r.greska) return [];
+  return AK.filter(a => r.ak[a.k] < cilj[a.k] * 0.97)
+    .map(a => ({ ...a, kg: (cilj[a.k] - r.ak[a.k]) / 100 * r.B / a.cist }));
+}
+function renderRezultat() {
+  const r = izracunaj(S), k = K(), v = V();
+  $("rec-label").textContent = "Receptura · " + v.naziv;
+  $("h-rec").textContent = `${k.naziv} · ${f(r.T,1)}% proteina`;
+  $("ukupno").textContent = f(r.B, 0) + " kg";
+  const st = $("status");
+  if (r.greska) {
+    st.className = "status bad"; st.textContent = r.greska;
+    $("tb").innerHTML = ""; $("tf").innerHTML = ""; $("bar").innerHTML = ""; $("checks").innerHTML = ""; $("dodaci").innerHTML = ""; $("cost").innerHTML = "";
+  } else {
+    st.className = "status ok";
+    st.innerHTML = `Na ${f(r.B,0)} kg: <b>${f(r.delZ*r.B,1)} kg žitarica</b>, <b>${f(r.delP*r.B,1)} kg proteinskog dela</b> i <b>${f(r.p*r.B,1)} kg premiksa</b>.`;
+    let totP = 0;
+    $("tb").innerHTML = r.redovi.map(x => {
+      const kg = x.udio * r.B, pk = kg * x.cp / 100; totP += pk;
+      const din = kg * (x.h ? num(x.h.cena) : num(S.premixcena));
+      return `<tr><td class="name"><i class="dot" style="background:${boja(x.g)}"></i>${esc(x.ime)}</td>
+        <td class="n">${f(x.udio*100)}</td><td class="n">${f(kg)}</td><td class="n">${f(pk)}</td><td class="n">${f(din,0)}</td></tr>`;
+    }).join("");
+    $("tf").innerHTML = `<tr><td>Ukupno · ${f(r.B ? totP / r.B * 100 : 0, 1)}% proteina</td><td class="n">100,00</td><td class="n">${f(r.B)}</td><td class="n">${f(totP)}</td><td class="n">${f(cena(r).osnovna,0)}</td></tr>`;
+    $("bar").innerHTML = [["z", r.delZ], ["p", r.delP], ["m", r.p]].filter(x => x[1] > 0)
+      .map(([g, val]) => `<span style="width:${val*100}%;background:${boja(g)}" title="${f(val*100,1)}%"></span>`).join("");
+
+    // energy and lysine checks
+    let html = "";
+    const dE = r.me - k.me, relE = k.me ? dE / k.me : 0;
+    const eCls = Math.abs(relE) <= 0.03 ? "good" : relE < 0 ? "low" : "warn";
+    const eMsg = eCls === "good" ? "U okviru preporuke."
+      : relE < 0 ? "Malo energije. Povećajte udeo kukuruza ili pšenice, ili dodajte malo ulja."
+      : "Više energije od preporuke. Može se zameniti deo kukuruza ječmom.";
+    html += `<div class="chk ${eCls}"><small>Energija (ME)</small><b>${f(r.me,2)} MJ/kg</b><small>preporuka ${f(k.me,1)} · razlika ${dE >= 0 ? "+" : ""}${f(dE,2)}</small><p>${eMsg}</p></div>`;
+    const cilj = preporukaAK(k);
+    if (cilj) for (const a of AK) {
+      const val = r.ak[a.k], c = cilj[a.k];
+      const cls = val >= c * 0.97 ? "good" : val >= c * 0.85 ? "warn" : "low";
+      const extra = a.k === "lys" ? ` · ${f(r.T ? val / r.T * 100 : 0, 1)}% od proteina` : ` · ${f(val / r.ak.lys * 100, 0)}% od lizina`;
+      html += `<div class="chk ${cls}"><small>${a.naziv}</small><b>${f(val,2)}%</b><small>preporuka ${f(c,2)}%${extra}</small><p>${cls === "good" ? "Dovoljno." : `Fali ${f(c - val,2)}%.`}</p></div>`;
+    }
+    $("checks").innerHTML = html;
+    const d = dodaci(r);
+    const c = cena(r);
+    $("cost").innerHTML = `<div><div class="label">Cena smeše</div><b>${f(c.poKg,2)} din/kg</b></div>
+      <small>${f(c.ukupno,0)} din za ${f(r.B,0)} kg${c.dodaci > 0 ? `, od toga ${f(c.dodaci,0)} din sintetičke aminokiseline` : ""}</small>`;
+    $("dodaci").innerHTML = !cilj ? "" : d.length
+      ? `<div class="label">Dodati na ${f(r.B,0)} kg</div>` + d.map(x => `<div>${x.dodatak}: <b>${f(x.kg, 3)} kg</b> <span class="hint">(${f(x.kg*1000, 0)} g · ${f(x.kg * num(S.ceneak[x.k]),0)} din)</span></div>`).join("")
+        + `<p class="hint">Ili izaberite premiks koji već sadrži ove aminokiseline i upišite ih gore.</p>`
+      : `<p class="hint">Sve esencijalne aminokiseline su u okviru preporuke.</p>`;
+  }
+  renderPearson(r);
+}
+function renderPearson(r) {
+  const pe = $("pearson");
+  if (!r.Z.items.length || !r.P.items.length || !(r.p < 1)) { pe.innerHTML = `<p class="hint">Potrebne su i žitarice i proteinsko hranivo.</p>`; return; }
+  const dZ = r.P.cp - r.Tn, dP = r.Tn - r.Z.cp;
+  pe.innerHTML = `
+    <div class="pearson">
+      <div class="pc"><small>Žitarice (prosek)</small><b>${f(r.Z.cp,2)}%</b></div>
+      <div class="x">↘ ↙</div>
+      <div class="pc right"><small>Delova proteinskog</small><b>${f(dP,2)}</b></div>
+      <div></div>
+      <div class="pc center"><small>Cilj bez premiksa</small><b>${f(r.Tn,2)}%</b></div>
+      <div></div>
+      <div class="pc"><small>Proteinski deo (prosek)</small><b>${f(r.P.cp,2)}%</b></div>
+      <div class="x">↗ ↖</div>
+      <div class="pc right"><small>Delova žitarica</small><b>${f(dZ,2)}</b></div>
+    </div>
+    <p class="hint" style="margin-top:10px">Premiks od ${f(r.p*100,1)}% se odvaja unapred, pa ostali deo smeše mora imati ${f(r.Tn,2)}% proteina.
+    Razlike se ukrštaju: žitarice dobijaju ${f(dZ,2)} delova, proteinski deo ${f(dP,2)} delova
+    ${dZ + dP > 0 ? `(odnos ${f(dZ/(dZ+dP)*100,1)} : ${f(dP/(dZ+dP)*100,1)})` : ""}.</p>`;
+}
+
+// --- saved recipes -----------------------------------------------------
+function renderLista() {
+  if (!LISTA.length) { $("lista").innerHTML = `<p class="hint">Još nema sačuvanih receptura. Upišite naziv i kliknite Sačuvaj.</p>`; return; }
+  $("lista").innerHTML = LISTA.map((x, i) => {
+    const v = VRSTE[x.s.vrsta], k = v?.kat.find(k => k.id === x.s.kat);
+    return `<div class="saved-row"><div class="nm"><b>${esc(x.ime)}</b><small>${v ? v.naziv : ""} · ${k ? k.naziv : ""} · ${f(num(x.s.sarza),0)} kg · ${new Date(x.t).toLocaleDateString("sr-Latn-RS")}</small></div>
+      <button class="btn" type="button" data-load="${i}">Otvori</button>
+      <button class="btn" type="button" data-rm="${i}" aria-label="Obriši ${esc(x.ime)}">Obriši</button></div>`;
+  }).join("");
+}
+function flash(id, txt) { const el = $(id); el.textContent = txt; clearTimeout(el._t); el._t = setTimeout(() => el.textContent = "", 2500); }
+function kaoTekst() {
+  const r = izracunaj(S), k = K();
+  if (r.greska) return r.greska;
+  const lines = [`${V().naziv} · ${k.naziv} · ${f(r.T,1)}% proteina · šarža ${f(r.B,0)} kg`];
+  r.redovi.forEach(x => lines.push(`${x.ime}: ${f(x.udio*r.B)} kg (${f(x.udio*100)}%)`));
+  dodaci(r).forEach(x => lines.push(`+ ${x.dodatak}: ${f(x.kg,3)} kg`));
+  const c = cena(r);
+  lines.push(`Cena: ${f(c.poKg,2)} din/kg, ukupno ${f(c.ukupno,0)} din`);
+  lines.push(`ME ${f(r.me,2)} MJ/kg` + (V().lizin ? ", " + AK.map(a => `${a.naziv.toLowerCase()} ${f(r.ak[a.k],2)}%`).join(", ") : ""));
+  return lines.join("\n");
+}
+
+function rerender() { renderRezultat(); store(KEY, S); }
+
+// --- events ------------------------------------------------------------
+function postaviKategoriju() {
+  const k = K(); S.kat = k.id; S.cilj = k.cp; S.premix = k.premix;
+  $("cilj").value = k.cp; $("premix").value = k.premix;
+}
+$("kat").addEventListener("change", e => { S.kat = e.target.value; postaviKategoriju(); rerender(); });
+for (const id of ["cilj", "sarza", "premix", "premixcp", "premixcena"]) $(id).addEventListener("input", e => { S[id] = e.target.value; rerender(); });
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.pak) { S.premixak[t.dataset.pak] = t.value; rerender(); return; }
+  if (t.dataset.cak) { S.ceneak[t.dataset.cak] = t.value; rerender(); return; }
+  if (t.dataset.i === undefined) return;
+  const h = S.hraniva[+t.dataset.i];
+  if (t.dataset.k === "me") { h.me = h.me || {}; h.me[V().e] = t.value; } else h[t.dataset.k] = t.value;
+  if (t.dataset.k === "ime") renderAkTabela();
+  rerender();
+});
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.vrsta) {
+    if (t.dataset.vrsta === S.vrsta) return;
+    S.vrsta = t.dataset.vrsta; S.kat = V().kat[0].id; postaviKategoriju(); renderPolja(); rerender();
+  }
+  else if (t.dataset.del !== undefined) { S.hraniva.splice(+t.dataset.del, 1); renderGrupe(); renderAkTabela(); rerender(); }
+  else if (t.dataset.add) {
+    S.hraniva.push(t.dataset.add === "z"
+      ? { g: "z", ime: "Nova žitarica", cena: 25, cp: 10, lys: 0.3, mc: 0.38, thr: 0.32, trp: 0.11, me: { s: 13, z: 12, r: 12.5 }, udeo: 10 }
+      : { g: "p", ime: "Novo hranivo", cena: 50, cp: 40, lys: 2, mc: 1.2, thr: 1.5, trp: 0.5, me: { s: 12, z: 9, r: 12 }, udeo: 10 });
+    renderGrupe(); renderAkTabela(); rerender();
+    const ins = document.querySelectorAll(`#g-${t.dataset.add} input[data-k=ime]`); ins[ins.length - 1]?.select();
+  }
+  else if (t.id === "reset") { const v = S.vrsta; S = DEFAULT(); S.vrsta = v; S.kat = V().kat[0].id; postaviKategoriju(); renderPolja(); rerender(); }
+  else if (t.id === "sacuvaj") {
+    const ime = $("ime-rec").value.trim() || `${V().naziv} · ${K().naziv}`;
+    const i = LISTA.findIndex(x => x.ime === ime);
+    const zapis = { ime, t: Date.now(), s: JSON.parse(JSON.stringify(S)) };
+    if (i >= 0) LISTA[i] = zapis; else LISTA.unshift(zapis);
+    const ok = store(KEY_LISTA, LISTA); renderLista();
+    flash("toast-save", ok ? (i >= 0 ? `Receptura „${ime}“ je ažurirana.` : `Sačuvano kao „${ime}“.`) : "Pregledač ne dozvoljava čuvanje (privatni prozor?). Receptura važi dok je stranica otvorena.");
+    $("ime-rec").value = "";
+  }
+  else if (t.dataset.load !== undefined) {
+    const x = LISTA[+t.dataset.load]; if (!x) return;
+    S = JSON.parse(JSON.stringify(x.s)); if (!VRSTE[S.vrsta]) S = DEFAULT(); dopuni(S);
+    renderPolja(); rerender(); $("ime-rec").value = x.ime;
+    flash("toast-save", `Otvorena receptura „${x.ime}“.`);
+  }
+  else if (t.dataset.rm !== undefined) {
+    const i = +t.dataset.rm;
+    if (t.dataset.confirm !== "1") { t.dataset.confirm = "1"; t.textContent = "Sigurno?"; setTimeout(() => { t.dataset.confirm = ""; t.textContent = "Obriši"; }, 3000); return; }
+    const [x] = LISTA.splice(i, 1); store(KEY_LISTA, LISTA); renderLista(); flash("toast-save", `Obrisana receptura „${x.ime}“.`);
+  }
+  else if (t.id === "kopiraj") {
+    const txt = kaoTekst();
+    navigator.clipboard?.writeText(txt).then(() => flash("toast-copy", "Kopirano."), () => flash("toast-copy", "Kopiranje nije uspelo u ovom prikazu."))
+      ?? flash("toast-copy", "Kopiranje nije podržano u ovom prikazu.");
+  }
+});
+
+renderPolja();
+renderRezultat();
+renderLista();
+</script>
+
+</body>
+</html>
