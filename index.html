@@ -156,6 +156,14 @@ details[open] summary { margin-bottom: 10px; }
 .pill { font-family: var(--f-display); font-stretch: 110%; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; background: var(--ink); color: var(--panel); border-radius: 4px; padding: 2px 6px; }
 .lock p { margin: 0; font-size: 13px; color: var(--muted); }
 input:disabled { opacity: 0.55; cursor: not-allowed; }
+.probar { background: var(--ink); color: var(--panel); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; }
+.probar .pt { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--f-display); font-stretch: 90%; font-weight: 700; font-size: 18px; }
+.probar .pill { background: var(--accent); color: var(--ink); }
+.probar ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px 16px; font-size: 14px; }
+.probar li::before { content: "★ "; color: var(--accent); }
+.probar p { margin: 0; font-size: 13px; opacity: 0.8; }
+.najbtn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; border: 2px solid var(--accent); background: var(--accent-soft); color: var(--ink); padding: 10px 14px; font-family: var(--f-display); font-stretch: 95%; font-weight: 700; font-size: 15px; }
+.najbtn:hover { background: var(--accent); }
 .toast { font-size: 13px; color: var(--ok); min-height: 1.2em; margin: 0; }
 
 [hidden]{display:none!important}
@@ -171,6 +179,17 @@ body{margin:0}
     <h1>Receptura stočne hrane</h1>
     <p>Izaberite životinju i kategoriju, unesite hraniva koja imate i koliko premiksa preporučuje proizvođač. Kalkulator izbalansira protein, pa proveri energiju i lizin i kaže koliko kilograma čega ide u šaržu.</p>
   </header>
+
+  <section class="probar" id="probar" aria-labelledby="h-pro">
+    <div class="pt"><span class="pill">PRO</span><span id="h-pro">Pro verzija uskoro</span></div>
+    <ul>
+      <li>Izračunaj najpovoljniju smešu po vašim cenama</li>
+      <li>Cena smeše po kilogramu i po šarži</li>
+      <li>Lizin, metionin, treonin i triptofan, sa dodacima</li>
+      <li>Čuvanje receptura pod imenom</li>
+    </ul>
+    <p>Osnovni kalkulator ostaje besplatan.</p>
+  </section>
 
   <div class="grid">
     <section class="panel" aria-labelledby="h-ulaz">
@@ -227,6 +246,8 @@ body{margin:0}
           <div class="big" id="ukupno"></div>
         </div>
         <div id="status" class="status"></div>
+        <button class="najbtn" id="najpovoljnija" type="button"><span class="pill">PRO</span>Izračunaj najpovoljniju smešu</button>
+        <p class="toast" id="toast-naj" role="status" style="color:var(--ink)"></p>
         <div class="tablewrap">
           <table>
             <thead><tr><th>Hranivo</th><th class="n">%</th><th class="n">kg</th><th class="n">Protein, kg</th><th class="n" id="th-cena">Cena, din</th></tr></thead>
@@ -615,6 +636,9 @@ document.addEventListener("click", e => {
     if (t.dataset.confirm !== "1") { t.dataset.confirm = "1"; t.textContent = "Sigurno?"; setTimeout(() => { t.dataset.confirm = ""; t.textContent = "Obriši"; }, 3000); return; }
     const [x] = LISTA.splice(i, 1); store(KEY_LISTA, LISTA); renderLista(); flash("toast-save", `Obrisana receptura „${x.ime}“.`);
   }
+  else if (t.id === "najpovoljnija") {
+    $("toast-naj").textContent = (PRO ? "Najpovoljnija smeša je u izradi." : "Najpovoljnija smeša je deo Pro verzije, koja stiže uskoro. Kalkulator će sam izabrati hraniva i količine tako da smeša zadovolji preporuke uz najnižu cenu.");
+  }
   else if (t.id === "kopiraj") {
     const txt = kaoTekst();
     navigator.clipboard?.writeText(txt).then(() => flash("toast-copy", "Kopirano."), () => flash("toast-copy", "Kopiranje nije uspelo u ovom prikazu."))
@@ -623,6 +647,8 @@ document.addEventListener("click", e => {
 });
 
 if (!PRO) $("th-cena").hidden = true;
+if (PRO) $("probar").hidden = true;
+if (!PRO) $("h-sac").innerHTML = 'Sačuvane recepture <span class="pill">PRO</span>';
 if (!PRO) $("sac-body").innerHTML = lock("Čuvanje receptura", "Sačuvajte recepture pod imenom i otvarajte ih kad zatrebaju.");
 renderPolja();
 renderRezultat();
