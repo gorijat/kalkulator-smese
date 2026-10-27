@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Besplatan kalkulator smeše za svinje, živinu, goveda i ovce: koliko kg žitarica, sačme i premiksa po šarži, sa proverom energije, lizina i cenom smeše.">
+<meta name="description" content="Besplatan kalkulator smeše za svinje, živinu, goveda i ovce: koliko kg žitarica, sačme i premiksa po šarži, sa proverom proteina i energije.">
 <title>Receptura stočne hrane</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -151,6 +151,11 @@ details[open] summary { margin-bottom: 10px; }
 .aktab input { width: 64px; padding: 5px 6px; text-align: right; }
 .aktab td.nm { font-size: 13.5px; min-width: 110px; }
 .sup { font-size: 13.5px; display: grid; gap: 4px; }
+.lock { border: 1px dashed var(--accent); border-radius: 6px; padding: 10px 12px; display: grid; gap: 4px; background: var(--accent-soft); grid-column: 1 / -1; }
+.lock .lt { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.pill { font-family: var(--f-display); font-stretch: 110%; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; background: var(--ink); color: var(--panel); border-radius: 4px; padding: 2px 6px; }
+.lock p { margin: 0; font-size: 13px; color: var(--muted); }
+input:disabled { opacity: 0.55; cursor: not-allowed; }
 .toast { font-size: 13px; color: var(--ok); min-height: 1.2em; margin: 0; }
 
 [hidden]{display:none!important}
@@ -224,7 +229,7 @@ body{margin:0}
         <div id="status" class="status"></div>
         <div class="tablewrap">
           <table>
-            <thead><tr><th>Hranivo</th><th class="n">%</th><th class="n">kg</th><th class="n">Protein, kg</th><th class="n">Cena, din</th></tr></thead>
+            <thead><tr><th>Hranivo</th><th class="n">%</th><th class="n">kg</th><th class="n">Protein, kg</th><th class="n" id="th-cena">Cena, din</th></tr></thead>
             <tbody id="tb"></tbody>
             <tfoot id="tf"></tfoot>
           </table>
@@ -250,6 +255,7 @@ body{margin:0}
 
       <section class="panel" aria-labelledby="h-sac">
         <h2 id="h-sac">Sačuvane recepture</h2>
+        <div id="sac-body" style="display:grid;gap:10px">
         <div class="row">
           <label class="l" for="ime-rec" style="flex-basis:100%">Naziv recepture</label>
           <input id="ime-rec" placeholder="npr. Tov jesen, kukuruz iz silosa 2">
@@ -258,6 +264,7 @@ body{margin:0}
         <p class="toast" id="toast-save" role="status"></p>
         <div class="saved" id="lista"></div>
         <p class="hint">Recepture se čuvaju u ovom pregledaču, na ovom uređaju. Na drugom telefonu ili računaru ih neće biti.</p>
+        </div>
       </section>
     </div>
   </div>
@@ -268,6 +275,9 @@ body{margin:0}
   Vrednosti hraniva i preporuke su orijentacione. Za konkretnu smešu važe deklaracija premiksa, analiza zrna i savet stručnjaka.
 </footer>
 <script>
+// Pro features (prices, amino acids, saved recipes). The public site build sets this to false.
+const PRO = false;
+const lock = (naslov, opis) => `<div class="lock"><div class="lt"><span class="pill">PRO</span>${naslov}</div><p>${opis} Dostupno u Pro verziji, uskoro.</p></div>`;
 // Energy column per species group: svinje, živina, preživari (goveda i ovce)
 const VRSTE = {
   svinje: { naziv: "Svinje", e: "s", lizin: true, ak: { mc: 0.60, thr: 0.65, trp: 0.18 }, premixHint: "Premiks i protein u premiksu prepišite sa deklaracije. Običan vitaminsko‑mineralni premiks nema protein, a superkoncentrati obično imaju 30–40%. Mnogi premiksi za svinje sadrže i lizin.",
@@ -402,7 +412,7 @@ function renderGrupe() {
         <input id="ime-${i}" data-i="${i}" data-k="ime" value="${n}" aria-label="Naziv hraniva">
         <input id="cp-${i}" data-i="${i}" data-k="cp" type="number" step="0.1" min="0" max="90" value="${h.cp}" aria-label="Protein u ${n}, %">
         <input id="me-${i}" data-i="${i}" data-k="me" type="number" step="0.1" min="0" max="40" value="${meOf(h)}" aria-label="Energija ${n}, MJ/kg">
-        <input id="ce-${i}" data-i="${i}" data-k="cena" type="number" step="1" min="0" value="${h.cena ?? 0}" aria-label="Cena ${n}, din/kg">
+        <input id="ce-${i}" data-i="${i}" data-k="cena" type="number" step="1" min="0" value="${h.cena ?? 0}" aria-label="Cena ${n}, din/kg"${PRO ? "" : ' disabled title="Pro"'}>
         <input id="ud-${i}" data-i="${i}" data-k="udeo" type="number" step="5" min="0" value="${h.udeo}" aria-label="Udeo ${n} u grupi">
         <button class="del" type="button" data-del="${i}" aria-label="Ukloni ${n}" title="Ukloni">×</button>
       </div>`;
@@ -422,7 +432,8 @@ function renderPolja() {
   $("kat").innerHTML = V().kat.map(k => `<option value="${k.id}">${k.naziv} · ${k.cp}% SP</option>`).join("");
   $("kat").value = K().id;
   for (const id of ["cilj", "sarza", "premix", "premixcp", "premixcena"]) $(id).value = S[id] ?? 0;
-  $("f-premixak").hidden = $("ak-box").hidden = !V().lizin;
+  $("f-premixak").hidden = $("ak-box").hidden = !V().lizin || !PRO;
+  $("premixcena").disabled = !PRO; if (!PRO) $("premixcena").title = "Pro";
   $("f-premixak").innerHTML = AK.map(a => `<div class="field"><label class="l" for="pak-${a.k}">${a.naziv} u premiksu</label>
     <div class="unit"><input id="pak-${a.k}" data-pak="${a.k}" type="number" step="0.1" min="0" max="40" value="${S.premixak[a.k] ?? 0}"><span>%</span></div></div>`).join("");
   renderAkTabela();
@@ -469,9 +480,9 @@ function renderRezultat() {
       const kg = x.udio * r.B, pk = kg * x.cp / 100; totP += pk;
       const din = kg * (x.h ? num(x.h.cena) : num(S.premixcena));
       return `<tr><td class="name"><i class="dot" style="background:${boja(x.g)}"></i>${esc(x.ime)}</td>
-        <td class="n">${f(x.udio*100)}</td><td class="n">${f(kg)}</td><td class="n">${f(pk)}</td><td class="n">${f(din,0)}</td></tr>`;
+        <td class="n">${f(x.udio*100)}</td><td class="n">${f(kg)}</td><td class="n">${f(pk)}</td>${PRO ? `<td class="n">${f(din,0)}</td>` : ""}</tr>`;
     }).join("");
-    $("tf").innerHTML = `<tr><td>Ukupno · ${f(r.B ? totP / r.B * 100 : 0, 1)}% proteina</td><td class="n">100,00</td><td class="n">${f(r.B)}</td><td class="n">${f(totP)}</td><td class="n">${f(cena(r).osnovna,0)}</td></tr>`;
+    $("tf").innerHTML = `<tr><td>Ukupno · ${f(r.B ? totP / r.B * 100 : 0, 1)}% proteina</td><td class="n">100,00</td><td class="n">${f(r.B)}</td><td class="n">${f(totP)}</td>${PRO ? `<td class="n">${f(cena(r).osnovna,0)}</td>` : ""}</tr>`;
     $("bar").innerHTML = [["z", r.delZ], ["p", r.delP], ["m", r.p]].filter(x => x[1] > 0)
       .map(([g, val]) => `<span style="width:${val*100}%;background:${boja(g)}" title="${f(val*100,1)}%"></span>`).join("");
 
@@ -484,7 +495,8 @@ function renderRezultat() {
       : "Više energije od preporuke. Može se zameniti deo kukuruza ječmom.";
     html += `<div class="chk ${eCls}"><small>Energija (ME)</small><b>${f(r.me,2)} MJ/kg</b><small>preporuka ${f(k.me,1)} · razlika ${dE >= 0 ? "+" : ""}${f(dE,2)}</small><p>${eMsg}</p></div>`;
     const cilj = preporukaAK(k);
-    if (cilj) for (const a of AK) {
+    if (cilj && !PRO) html += lock("Aminokiseline", "Lizin, metionin+cistin, treonin i triptofan u odnosu na preporuku, i koliko sintetičkih aminokiselina treba dodati.");
+    else if (cilj) for (const a of AK) {
       const val = r.ak[a.k], c = cilj[a.k];
       const cls = val >= c * 0.97 ? "good" : val >= c * 0.85 ? "warn" : "low";
       const extra = a.k === "lys" ? ` · ${f(r.T ? val / r.T * 100 : 0, 1)}% od proteina` : ` · ${f(val / r.ak.lys * 100, 0)}% od lizina`;
@@ -493,9 +505,10 @@ function renderRezultat() {
     $("checks").innerHTML = html;
     const d = dodaci(r);
     const c = cena(r);
-    $("cost").innerHTML = `<div><div class="label">Cena smeše</div><b>${f(c.poKg,2)} din/kg</b></div>
+    $("cost").className = PRO ? "cost" : "";
+    $("cost").innerHTML = !PRO ? lock("Cena smeše", "Upišite cene hraniva i vidite koliko košta kilogram smeše i cela šarža.") : `<div><div class="label">Cena smeše</div><b>${f(c.poKg,2)} din/kg</b></div>
       <small>${f(c.ukupno,0)} din za ${f(r.B,0)} kg${c.dodaci > 0 ? `, od toga ${f(c.dodaci,0)} din sintetičke aminokiseline` : ""}</small>`;
-    $("dodaci").innerHTML = !cilj ? "" : d.length
+    $("dodaci").innerHTML = !cilj || !PRO ? "" : d.length
       ? `<div class="label">Dodati na ${f(r.B,0)} kg</div>` + d.map(x => `<div>${x.dodatak}: <b>${f(x.kg, 3)} kg</b> <span class="hint">(${f(x.kg*1000, 0)} g · ${f(x.kg * num(S.ceneak[x.k]),0)} din)</span></div>`).join("")
         + `<p class="hint">Ili izaberite premiks koji već sadrži ove aminokiseline i upišite ih gore.</p>`
       : `<p class="hint">Sve esencijalne aminokiseline su u okviru preporuke.</p>`;
@@ -539,10 +552,12 @@ function kaoTekst() {
   if (r.greska) return r.greska;
   const lines = [`${V().naziv} · ${k.naziv} · ${f(r.T,1)}% proteina · šarža ${f(r.B,0)} kg`];
   r.redovi.forEach(x => lines.push(`${x.ime}: ${f(x.udio*r.B)} kg (${f(x.udio*100)}%)`));
-  dodaci(r).forEach(x => lines.push(`+ ${x.dodatak}: ${f(x.kg,3)} kg`));
-  const c = cena(r);
-  lines.push(`Cena: ${f(c.poKg,2)} din/kg, ukupno ${f(c.ukupno,0)} din`);
-  lines.push(`ME ${f(r.me,2)} MJ/kg` + (V().lizin ? ", " + AK.map(a => `${a.naziv.toLowerCase()} ${f(r.ak[a.k],2)}%`).join(", ") : ""));
+  if (PRO) {
+    dodaci(r).forEach(x => lines.push(`+ ${x.dodatak}: ${f(x.kg,3)} kg`));
+    const c = cena(r);
+    lines.push(`Cena: ${f(c.poKg,2)} din/kg, ukupno ${f(c.ukupno,0)} din`);
+  }
+  lines.push(`ME ${f(r.me,2)} MJ/kg` + (V().lizin && PRO ? ", " + AK.map(a => `${a.naziv.toLowerCase()} ${f(r.ak[a.k],2)}%`).join(", ") : ""));
   return lines.join("\n");
 }
 
@@ -607,9 +622,11 @@ document.addEventListener("click", e => {
   }
 });
 
+if (!PRO) $("th-cena").hidden = true;
+if (!PRO) $("sac-body").innerHTML = lock("Čuvanje receptura", "Sačuvajte recepture pod imenom i otvarajte ih kad zatrebaju.");
 renderPolja();
 renderRezultat();
-renderLista();
+if (PRO) renderLista();
 </script>
 
 </body>
